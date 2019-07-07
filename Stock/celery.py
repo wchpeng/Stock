@@ -46,13 +46,13 @@ def sync_data_to_stock_history():
 
 
 app.conf.beat_schedule = {
-    # 'update_latest_stock_info_every_mon2fri0': {
-    #     'task': 'Stock.celery.ttt',
-    #     # 'schedule': crontab(day_of_week={1, 2, 3, 4, 5}),
-    #     # 'schedule': crontab('*'),
-    #     'schedule': 100,
-    #     'args': ()
-    # },
+    'update_latest_stock_info_every_mon2fri0': {
+        'task': 'Stock.celery.ttt',
+        # 'schedule': crontab(day_of_week={1, 2, 3, 4, 5}),
+        # 'schedule': crontab('*'),
+        'schedule': 20,
+        'args': ()
+    },
     # 周一至周五，每天的 11.30, 15:00 执行一次往历史库插入数据的操作
     'add_stock_history_info_1130': {
         'task': 'Stock.celery.sync_data_to_stock_history_mon2fri',
