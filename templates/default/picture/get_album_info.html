@@ -1,0 +1,748 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load datetime_filters %}
+
+{% block script %}
+
+	<link rel="stylesheet" href="{% static 'base/emoji/css/reset.css' %}">
+	<script type="text/javascript" src="{% static 'base/emoji/js/jquery.qqFace.js' %}"></script>
+
+	<script>
+		$(function () {
+			jQuery.browser = {}; (function () { jQuery.browser.msie = false; jQuery.browser.version = 0; if (navigator.userAgent.match(/MSIE ([0-9]+)./)) { jQuery.browser.msie = true; jQuery.browser.version = RegExp.$1; } })();
+
+			var $horizontal_pic = $(".horizontal-pic");
+			var $carousel_pic = $(".carousel-pic");
+			var $rounded_image = $(".rounded-image");
+			var $close_carousel = $(".close-carousel");
+			var $second_reply_review = $(".second-reply-review");
+			var $third_reply_reply = $(".third-reply-reply");
+			$.cookie("username", "{{ request.user.username }}");
+			$.cookie("picture", "{{ request.user.picture.url }}");
+
+			$("#description").focus(function () {
+			    // 让 textarea 输入框的大小随内容而变化
+				$('textarea').each(function () {
+					this.setAttribute('style', 'height:' + (this.scrollHeight) + 'px;overflow-y:hidden;');
+				}).on('input', function () {
+					this.style.height = 'auto';
+					this.style.height = (this.scrollHeight) + 'px';
+				});
+			});
+
+			$('.emotion').qqFace({
+				id: 'facebox',
+				assign: 'description',
+				path: '{% static "base/emoji/arclist" %}/'	//表情存放的路径
+			});
+
+			//查看结果
+			function replace_em(str) {
+				str = str.replace(/\</g, '&lt;');
+				str = str.replace(/\>/g, '&gt;');
+				<!--str = str.replace(/\n/g, '<br/>');-->
+				<!--str = str.replace(/\n/g, '');-->
+				str = str.replace(/\[em_([0-9]*)\]/g, '<img src="{% static 'base/emoji/arclist' %}/$1.gif" border="0" />');
+				return str;
+			}
+
+			$rounded_image.click(hide_horizontal_pic);
+			$close_carousel.click(hide_carousel_pic);
+			$(".border2").on("click", ".second-reply-review", toggle_second_reply_review_form);
+			$(".border2").on("click", ".third-reply-reply", toggle_third_reply_reply_form);
+			$(".border2").on("submit", ".reply-form", reply_form_submit);
+			$(".border2").on("submit", ".second-reply-form", second_reply_form_submit);
+			$(".border2").on("submit", ".third-reply-form", third_reply_form_submit);
+
+
+			function reply_form_submit(){
+				// 第一个回复评论按钮不生效使用 json 请求，插入一级回复
+				var cur = $(this);
+				var csrfmiddlewaretoken = $(this).find($("input[name='csrfmiddlewaretoken']")).val();
+				var album_id = $(this).find($("input[name='album_id']")).val();
+				var parent_reply = $(this).find($("input[name='parent_reply']")).val();
+				var content = $(this).find($("textarea[name='content']")).val();
+				if (content.trim().length == 0){
+					alert("内容不能为空！")
+					cur.find("textarea").val("");
+					return false
+				}
+
+				$.ajax({
+                    url: "{% url 'picture:post_reply_info' %}",
+                    data: {csrfmiddlewaretoken:csrfmiddlewaretoken,album_id:album_id,parent_reply:parent_reply,content:content},
+                    type: 'POST',
+                    success: function(data, status, xhr){
+                        if (data.code == 0) {
+                            $("#reviews-count").text(parseInt($("#reviews-count").text())+1);
+                            cur.parent().after('<div class="one-review">\
+								<div class="review-border col-xs-12">\
+									<div class="border"></div>\
+								</div>\
+								<div class="col-xs-1" style="padding-right:0px;">\
+									<img src="' + $.cookie("picture") + '" alt="" class="review-head-proto">\
+								</div>\
+								<div class="col-xs-11" style="padding-left:5px;" id="' + data.data.id + '-reply">\
+									<div class="review">\
+										<a href="javascript:" style="color: orange">' + $.cookie("username") +'：</a>'+ replace_em(content) +'</div>\
+									<div class="review">\
+										<span class="review-createtime">刚刚</span>\
+										<span class="review-other">\
+											<a href="javascript:" class="second-reply-review">回复</a> | 赞</span>\
+									</div>\
+								</div>\
+							</div>')
+							cur.find("textarea").val("");
+                        } else {
+                        	alert(data.msg);
+                        }
+                    }
+                })
+				return false
+			}
+			 function second_reply_form_submit(){
+				// 第一个回复评论按钮不生效使用 json 请求，插入一级回复
+				var cur = $(this);
+				var csrfmiddlewaretoken = $(this).find($("input[name='csrfmiddlewaretoken']")).val();
+				var album_id = $(this).find($("input[name='album_id']")).val();
+				var parent_reply = $(this).find($("input[name='parent_reply']")).val();
+				var content = $(this).find($("textarea[name='content']")).val();
+				$.ajax({
+                    url: "{% url 'picture:post_reply_info' %}",
+                    data: {csrfmiddlewaretoken:csrfmiddlewaretoken,album_id:album_id,parent_reply:parent_reply,content:content},
+                    type: 'POST',
+                    success: function(data, status, xhr){
+                        if (data.code == 0) {
+                            $("#reviews-count").text(parseInt($("#reviews-count").text())+1);
+                            cur.after('<div class="col-xs-11 col-xs-offset-1" style="padding-left:5px;padding-bottom:5px;">\
+								<div class="second-review-inner" id="' + data.data.id + '-reply">\
+									<div class="review">\
+										<a href="javascript:" style="color: orange">' + $.cookie("username") +'：</a>'+ replace_em(content) +'</div>\
+									<div class="review">\
+										<span class="review-createtime">刚刚</span>\
+										<span class="review-other">\
+											<a href="javascript:" class="third-reply-reply">回复</a> | 赞</span>\
+									</div>\
+								</div>\
+							</div>')
+							cur.remove()
+                        } else {
+                        	alert(data.msg);
+                        }
+                    }
+                })
+
+				return false
+			}
+			function third_reply_form_submit(){
+				// 第一个回复评论按钮不生效使用 json 请求，插入二级回复
+				var cur = $(this);
+				var csrfmiddlewaretoken = $(this).find($("input[name='csrfmiddlewaretoken']")).val();
+				var album_id = $(this).find($("input[name='album_id']")).val();
+				var parent_reply = $(this).find($("input[name='parent_reply']")).val();
+				var content = $(this).parent().find($("textarea[name='content']")).val();
+				$.ajax({
+                    url: "{% url 'picture:post_reply_info' %}",
+                    data: {csrfmiddlewaretoken:csrfmiddlewaretoken,album_id:album_id,parent_reply:parent_reply,content:content},
+                    type: 'POST',
+                    success: function(data, status, xhr){
+                        if (data.code == 0) {
+                            $("#reviews-count").text(parseInt($("#reviews-count").text())+1);
+                            s = '<div class="col-xs-11 col-xs-offset-1" style="padding-left:5px;padding-bottom:5px;">\
+								<div class="second-review-inner" id="' + data.data.id + '-reply">\
+									<div class="review">\
+										<a href="javascript:" style="color: orange">' + $.cookie("username") +'：</a>'+ replace_em(content) +'</div>\
+									<div class="review">\
+										<span class="review-createtime">刚刚</span>\
+										<span class="review-other">\
+											<a href="javascript:" class="third-reply-reply">回复</a> | 赞</span>\
+									</div>\
+								</div>\
+							</div>'
+							cur.parent().parent().children("div:eq(2)").after(s);
+							cur.remove()
+                        } else {
+                        	alert(data.msg);
+                        }
+                    }
+                })
+
+				return false
+			}
+			function toggle_second_reply_review_form() {
+				// 切换或隐藏一级回复的回复‘评论框’
+				cur = $(this);
+				var ppp_review = cur.parent().parent().parent();
+				var form_id = ppp_review.attr("id") + '-form';
+				var reply_username = cur.parent().parent().prev().children().text()
+
+				if ($("#" + form_id).length > 0) {
+					$("#" + form_id).remove();
+				} else {
+					ppp_review.after(
+						'<form action="{% url 'picture:post_reply_info' %}" method="POST" id="' + form_id + '" class="second-reply-form">\
+						<div class="col-xs-11 col-xs-offset-1" style="padding-left:5px;padding-top: 10px;padding-bottom: 10px; padding-bottom:6px;"> \
+							{% csrf_token %}\
+							<input type="hidden" value="{{ id }}" name="album_id">\
+							<input type="hidden" value="' + parseInt(form_id) + '" name="parent_reply">\
+							<textarea type="text" class="form-control pull-left" rows="1" id="description' + form_id + '" name="content"></textarea>\
+							<button type="button" class="btn btn-default emotion' + form_id + '" style="margin-top:5px;">\
+								<span class="glyphicon glyphicon-unchecked" aria-hidden="true"></span>\
+							</button>\
+							<button type="submit" class="btn btn-warning" style="float:right;margin-top:5px;">评论</button>\
+						</div>\
+					</form>'
+					);
+
+					var description_id = "description" + form_id;
+					var emotion_cls = "emotion" + form_id;
+					set_textarea_cursor_last($("#"+description_id));
+
+					$("#" + description_id).focus(function () {
+						$('textarea').each(function () {
+							this.setAttribute('style', 'height:' + (this.scrollHeight) + 'px;overflow-y:hidden;');
+						}).on('input', function () {
+							this.style.height = 'auto';
+							this.style.height = (this.scrollHeight) + 'px';
+						});
+					});
+
+					$("." + emotion_cls).qqFace({
+						id: 'facebox',
+						assign: "description" + form_id,
+						path: '{% static "base/emoji/arclist" %}/'	//表情存放的路径
+					});
+				}
+			}
+			function toggle_third_reply_reply_form() {
+				// 切换或隐藏二级回复的回复‘评论框’
+				var cur = $(this);
+
+				var ppp_review = cur.parent().parent().parent();
+				var form_id = ppp_review.attr("id") + '-form';
+				var parent_review_id = ppp_review.parent().siblings().slice(2).attr("id");
+				var reply_username = cur.parent().parent().prev().children().text();
+
+				if ($("#" + form_id).length > 0) {
+					$("#" + form_id).remove();
+				} else {
+					ppp_review.after(
+						'<form action="{% url 'picture:post_reply_info' %}" method="POST" id="' + form_id + '" class="third-reply-form">\
+							<div class="col-xs-12" style="padding-left:5px;padding-top: 10px;background-color: #ddd; padding-bottom:6px;"> \
+								{% csrf_token %}\
+								<input type="hidden" value="{{ id }}" name="album_id">\
+								<input type="hidden" value="'+ parseInt(parent_review_id) + '" name="parent_reply">\
+								<textarea type="text" class="form-control pull-left" rows="1" id="description' + form_id + '" name="content">@' + reply_username + '</textarea>\
+								<button type="button" class="btn btn-default emotion' + form_id + '" style="margin-top:5px;">\
+									<span class="glyphicon glyphicon-unchecked" aria-hidden="true"></span>\
+								</button>\
+								<button type="submit" class="btn btn-warning" style="float:right;margin-top:5px;">评论</button>\
+							</div>\
+						</form>'
+					);
+					var description_id = "description" + form_id;
+					var emotion_cls = "emotion" + form_id;
+					set_textarea_cursor_last($("#"+description_id));
+
+					$("#" + description_id).focus(function () {
+						$('textarea').each(function () {
+							this.setAttribute('style', 'height:' + (this.scrollHeight) + 'px;overflow-y:hidden;');
+						}).on('input', function () {
+							this.style.height = 'auto';
+							this.style.height = (this.scrollHeight) + 'px';
+						});
+					});
+
+					$("." + emotion_cls).qqFace({
+						id: 'facebox',
+						assign: "description" + form_id,
+						path: '{% static "base/emoji/arclist" %}/'	//表情存放的路径
+					});
+				}
+			}
+
+            $("#{{ id }}-favorite").click(function(){
+                // 点击收藏切换
+                ajax_send_for_operate_album("{% url 'picture:get_favorite_album' %}", "{{ id }}-favorite", "收藏")
+            });
+            $("#{{ id }}-like").click(function(){
+                ajax_send_for_operate_album("{% url 'picture:get_like_album' %}", "{{ id }}-like", "点赞")
+            })
+            $("#{{ id }}-replies").click(function(){
+            	$(".album-reviews").toggle();
+            })
+
+			var ajax_send_for_operate_album = function(url, id, base_msg){
+                $.ajax({
+                    url: url + "?album_id=" + parseInt(id),
+                    type: 'GET',
+                    success: function(data, status, xhr){
+                        if (data.code == 0) {
+                            toggle_heart_color(id, base_msg);
+                        } else {
+                        	alert(data.msg);
+                        }
+                    }
+                })
+			}
+
+			var toggle_heart_color = function(id, base_msg) {
+				// 切换收藏图标颜色
+                $current = $("#" + id);
+                var $heart_n_span = $current.next();
+                var heart_count = parseInt($heart_n_span.text());
+                if ($current.text() == base_msg){
+                    $heart_n_span.html(heart_count + 1);
+                    $current.html("已" + base_msg);
+                } else {
+                    $heart_n_span.html(heart_count - 1);
+                    $current.html(base_msg);
+                }
+            }
+
+			function hide_horizontal_pic() {
+				// 切换轮播图和平铺图显示/隐藏 轮播图显示，平铺图隐藏
+				$horizontal_pic.hide();
+				$carousel_pic.show();
+				change_div3_height_eq_width();
+				var slide_to_id = parseInt($(this).attr("id"));
+				$(".carousel").carousel(parseInt(slide_to_id))
+				$("img[data-slide-to='"+slide_to_id+"']").parent().css("border", "4px solid #fa7d3d");
+			}
+			function hide_carousel_pic() {
+				// 切换轮播图和平铺图显示/隐藏 轮播图显示，平铺图隐藏
+				$horizontal_pic.show();
+				$carousel_pic.hide();
+				change_div3_height_eq_width();
+				$(".img-div").css("border", "none");
+			}
+			function set_textarea_cursor_last(cur){
+				// 设置 textarea 的游标为末尾
+				var textObj = cur.get(0);
+				var rangeEnd = textObj.selectionEnd;
+				var tempStr2 = textObj.value.substring(rangeEnd);
+				textObj.focus();
+				var len = tempStr2.length;
+				textObj.setSelectionRange(len, len);
+			}
+			function change_div3_height_eq_width(){
+				var glo_height = 0;
+                $(".img-cover").each(function(){
+                    wid = $(this).parent().css("width");
+                    <!--pad_left = $(this).parent().css("padding-left");-->
+                    <!--pad_right = $(this).parent().css("padding-right");-->
+                    if (Math.abs(parseInt(wid)-glo_height) > 1){
+                    	glo_height = parseInt(wid);
+                    }
+                    height = glo_height + "px";
+                    $(this).parent().css("height", height);
+                })
+            }
+            change_div3_height_eq_width();
+            $(window).resize(change_div3_height_eq_width);
+            $('.carousel').carousel({
+			  interval: false
+			})
+			$(".img-div img").click(function(){
+				// 点击轮播图下的小图标，会加一个好看的边框
+				$(this).parent().siblings().css("border", "none");
+				$(this).parent().css("border", "4px solid #fa7d3d");
+			})
+
+		})
+	</script>
+{% endblock script %}
+
+{% block style %}
+	<style>
+		body {
+			background-color: #b4daf1;
+		}
+
+		.container {
+			background-color: #93c5e4;
+		}
+
+		.one-album {
+			background-color: #ffffff;
+			padding-bottom: 15px;
+			padding-top: 10px;
+			<!--padding-left: 25px;-->
+			<!--padding-right: 25px;-->
+			<!--padding: 10px 25px 15px 25px;-->
+		}
+
+		.img-circle {
+			width: 100%;
+			height: 100%;
+		}
+
+		.img-rounded {
+			padding-top: 3px;
+			width: 100%;
+			height: 100%;
+		}
+
+		.rounded-image {
+			padding: 0px 0px 0px 0px;
+			margin: 3px 3px 0px 0px;;
+		}
+
+		.username {
+			font-size: 16px;
+			margin-top: 10px;
+			margin-bottom: 3px;
+			font-weight: bold;
+		}
+
+		.create_time {
+			margin-top: 3px;
+			margin-bottom: 10px;
+			color: gray;
+		}
+
+		.title-div {
+			padding-bottom: 7px;
+			padding-left: 0px;
+		}
+
+		.img-width100 {
+			width: 100%;
+			height: 100%;
+		}
+		.img-cover {
+			object-fit: cover;
+		}
+
+		.img-div {
+			padding: 1px 1px 1px 1px;
+			margin: 3px 3px 0 0;
+		}
+
+		.album-footer,
+		.album-reviews {
+			border-top: 1px solid gray;
+			padding-left: 0px;
+			padding-right: 0px;
+			background-color: #ffffff;
+		}
+
+		.album-reviews {
+			padding-bottom: 15px;
+		}
+
+		.cell {
+			width: 33.3333%;
+			text-align: center;
+			float: left;
+			height: 30px;
+			line-height: 30px;
+		}
+
+		.b_main2 {
+			width: 100%;
+			/* height: 50px; */
+		}
+
+		.out2 {
+			position: absolute;
+			left: 50%;
+			top: -24px;
+			border-color: transparent transparent gray transparent;
+			border-style: dashed dashed solid dashed;
+			border-width: 12px;
+		}
+
+		.in2 {
+			position: absolute;
+			border-color: transparent transparent #ffffff transparent;
+			border-style: dashed dashed solid dashed;
+			border-width: 12px;
+			top: -10px;
+			left: -12px;
+		}
+
+		.border2 {
+			position: relative;
+			/* border: 1px solid #999999; */
+			padding: 10px;
+			/* margin-top: 16px; */
+			border-radius: 5px;
+			width: 100%;
+			height: 100%;
+		}
+
+		.review-other {
+			float: right;
+		}
+
+		.review {
+			line-height: 24px;
+			font-size: 13px;
+		}
+
+		.review-head-proto {
+			width: 85%;
+		}
+
+		.review-border {
+			padding: 15px;
+			/* padding-bottom: 15px;
+			padding-left: 15px;
+			padding-right: 15px; */
+		}
+
+		.review-border .border {
+			border-top: 1px solid #aba;
+		}
+
+		.second-review-inner {
+			background-color: #ddd;
+			padding: 0px 13px 0px 13px;
+		}
+
+		a:link {
+			text-decoration: none;
+			/* 指正常的未被访问过的链接*/
+		}
+
+		a:visited {
+			text-decoration: none;
+			/*指已经访问过的链接*/
+		}
+
+		a:hover {
+			text-decoration: none;
+			/*指鼠标在链接*/
+		}
+
+		a:active {
+			text-decoration: none;
+			/* 指正在点的链接*/
+		}
+
+
+
+		.qqFace {
+			margin-top: 4px;
+			background: #ffffff;
+			padding: 2px;
+			border: 1px #dfe6f6 solid;
+		}
+
+		.qqFace table td {
+			padding: 0px;
+		}
+
+		.qqFace table td img {
+			cursor: pointer;
+			border: 1px #ffffff solid;
+		}
+
+		.qqFace table td img:hover {
+			border: 1px #0066cc solid;
+		}
+		.col-xs-1-8,
+		.col-sm-1-8,
+		.col-md-1-8,
+		.col-lg-1-8 {
+			min-height: 1px;
+			<!--padding-left: 15px;-->
+			<!--padding-right: 15px;-->
+			position: relative;
+		}
+
+		.col-xs-1-8 {
+			width: 11.8%;
+			float: left;
+		}
+
+		@media (min-width: 768px) {
+			.col-sm-1-8 {
+				width: 11.8%;
+				float: left;
+			}
+		}
+
+		@media (min-width: 992px) {
+			.col-md-1-8 {
+				width: 11.8%;
+				float: left;
+			}
+		}
+
+		@media (min-width: 1200px) {
+			.col-lg-1-8 {
+				width: 11.8%;
+				float: left;
+			}
+		}
+	</style>
+{% endblock style %}
+
+{% block body %}
+	<div class="container">
+		<div class="row" style="padding-top: 25px;padding-bottom: 15px;">
+			<div class="col-lg-8 col-lg-offset-2 col-md-8 col-md-offset-2 col-sm-10 col-sm-offset-1 col-xs-12 one-album">
+				<!--<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">-->
+				<div class="col-xs-1-8" style="padding-right:10px;padding-left:5px;">
+					<img src="{{ creater__picture }}" alt="image" class="img-circle">
+				</div>
+				<div class="col-sm-10 col-xs-10">
+					<div class="row">
+
+						<div class="col-xs-12 title-div">
+							<p class="username">{{ creater__username }}</p>
+							<p class="create_time">{{ create_time|datetime_semantization }}</p>
+							<div>
+								【{{ title|replace_em|safe }}】{{ desc|replace_em|safe }}
+							</div>
+						</div>
+						<div class="horizontal-pic">
+
+							{% for picture in pictures %}
+							<div class="col-lg-3 col-md-3 col-sm-3 col-xs-3 rounded-image" id="{{ forloop.counter0 }}-horizontal-pic">
+								<img src="{{ picture.picture }}" alt="image" class="img-width100 img-cover">
+							</div>
+							{% endfor %}
+
+						</div>
+
+						<div class="row carousel-pic" style="margin-top:10px;display:none;">
+							<div class="col-xs-12">
+								<div class="close-carousel">
+									<a href="javascript:">
+										<span class="glyphicon glyphicon-menu-up" aria-hidden="true"></span> 收起</a>
+								</div>
+								<div id="carousel-example-generic" class="carousel slide" data-ride="carousel">
+									<!-- Wrapper for slides -->
+									<div class="carousel-inner" role="listbox">
+										{% for p in pictures %}
+										<div class="item {% if forloop.counter0 == 0 %}active{% endif %}">
+											<img src="{{ p.picture }}" alt="..." class="img-width100">
+											<!--<div class="carousel-caption">-->
+												<!--this 111-->
+											<!--</div>-->
+										</div>
+										{% endfor %}
+									</div>
+
+									<!-- Controls -->
+									<a class="left carousel-control" href="#carousel-example-generic" role="button" data-slide="prev">
+										<span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+										<span class="sr-only">Previous</span>
+									</a>
+									<a class="right carousel-control" href="#carousel-example-generic" role="button" data-slide="next">
+										<span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+										<span class="sr-only">Next</span>
+									</a>
+									<div style="margin-top:10px;">
+										{% for p in pictures %}
+										<!--<div class="col-sm-2 col-xs-3 img-div" style="width:17%">-->
+										<div class="col-xs-1-8 img-div">
+											<img src="{{ p.picture }}" alt="" class="img-width100 img-cover" data-target="#carousel-example-generic" data-slide-to="{{ forloop.counter0 }}">
+										</div>
+										{% endfor %}
+									</div>
+								</div>
+							</div>
+
+						</div>
+					</div>
+				</div>
+
+			</div>
+			<div class="col-lg-8 col-lg-offset-2 col-md-8 col-md-offset-2 col-sm-10 col-sm-offset-1 col-xs-12 album-footer">
+				<!--<div class="cell">-->
+					<!--<a href="javascript:">-->
+						<!--<span title="点击喜欢" style="color:rgb(232, 94, 146);" class="glyphicon glyphicon-heart heart initialism" aria-hidden="true">-->
+						<!--</span>-->
+					<!--</a>-->
+				<!--</div>-->
+				<div class="cell">
+					<a href="javascript:" id="{{ id }}-favorite">{% if is_favorite %}已{% endif %}收藏</a>（<span>{{ favorite_count }}</span>）
+				</div>
+				<div class="cell" style="border-left:1px dashed gray;">
+					<a href="javascript:" id="{{ id }}-replies">评论</a>（<span id="reviews-count">{{ reply_count }}</span>）
+				</div>
+				<div class="cell" style="border-left:1px dashed gray;">
+					<a href="javascript:" id="{{ id }}-like">{% if is_like %}已{% endif %}点赞</a>（<span>{{ like_count }}</span>）
+				</div>
+			</div>
+
+			<div style="height:16px;" class="col-lg-8 col-lg-offset-2 col-md-8 col-md-offset-2 col-sm-10 col-sm-offset-1 col-xs-12"></div>
+
+			<div class="col-lg-8 col-lg-offset-2 col-md-8 col-md-offset-2 col-sm-10 col-sm-offset-1 col-xs-12 album-reviews">
+				<div class="b_main2">
+					<div class="border2">
+						<div class="post-review">
+							<div class="col-xs-1" style="padding-right:0px;padding-bottom:15px;">
+								<img src="{{ request.user.picture.url }}" alt="" class="review-head-proto">
+							</div>
+
+							<form action="{% url 'picture:post_reply_info' %}" method="POST" class="reply-form">
+								<div class="col-xs-11" style="padding-left:5px;">
+									{% csrf_token %}
+									<input type="hidden" value="{{ id }}" name="album_id">
+									<input type="hidden" value="0" name="parent_reply">
+									<textarea type="text" class="form-control pull-left" rows="1" id="description" name="content"></textarea>
+
+									<button type="button" class="btn btn-default emotion" style="margin-top:5px;">
+										<span class="glyphicon glyphicon-unchecked" aria-hidden="true"></span>
+									</button>
+									<button type="submit" class="btn btn-warning" style="float:right;margin-top:5px;">评论</button>
+								</div>
+							</form>
+						</div>
+
+						{% for review in reviews %}
+						<div class="one-review">
+							<div class="review-border col-xs-12">
+								<div class="border"></div>
+							</div>
+							<div class="col-xs-1" style="padding-right:0px;">
+								<!-- <div class="col-xs-12 col-cs-offset-0"> -->
+								<img src="{{ review.creater__picture }}" alt="" class="review-head-proto">
+								<!-- </div> -->
+							</div>
+							<div class="col-xs-11" style="padding-left:5px;" id="{{ review.id }}-reply">
+								<div class="review">
+									<!-- <span style="color: orange">今朝有酒今朝醉：</span>这个是真的皮哦 -->
+									<a href="javascript:" style="color: orange">{{ review.creater__username|replace_em|safe }}：</a>{{ review.content|replace_em|safe }}
+								</div>
+								<div class="review">
+									<span class="review-createtime">{{ review.create_time|datetime_semantization }}</span>
+									<span class="review-other">
+										<a href="javascript:" class="second-reply-review">回复</a> | 赞</span>
+								</div>
+							</div>
+							{% for reply in review.replies %}
+							<div class="col-xs-11 col-xs-offset-1" style="padding-left:5px;padding-bottom:5px;">
+								<div class="second-review-inner" id="{{ reply.id }}-reply">
+									<div class="review">
+										<!-- <span style="color: orange">今朝有酒今朝醉：</span>这个是真的皮哦 -->
+										<a href="javascript:" style="color: orange">{{ reply.creater__username|replace_em|safe }}：</a>{{ reply.content|replace_em|safe }}
+									</div>
+									<div class="review">
+										<span class="review-createtime">{{ reply.create_time|datetime_semantization }}</span>
+										<span class="review-other">
+											<a href="javascript:" class="third-reply-reply">回复</a> | 赞</span>
+									</div>
+								</div>
+							</div>
+							{% endfor %}
+						</div>
+						{% endfor %}
+
+						<div style="height:10px;"></div>
+					</div>
+					<div class="out2">
+						<div class="in2"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+{% endblock body %}

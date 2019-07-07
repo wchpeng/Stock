@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
+        integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"
+        integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+        crossorigin="anonymous"></script>
+    {% block script %}{% endblock %}
+    <script>
+        $(function () {
+            var $q = $("#q");
+            var $keywork_search = $("#kwyword_search");
+
+            $keywork_search.click(function () {
+                window.location.href = "{% url 'picture:index' %}" + "?q=" + $q.val();
+                <!--window.location.href = "http://baidu.com/s" + "?wd=" + $q.val();-->
+                return false
+            });
+
+            $("#inputDesc3").focus(function () {
+                // 让 textarea 输入框的大小随内容而变化
+                $('textarea').each(function () {
+                    this.setAttribute('style', 'height:' + (this.scrollHeight) + 'px;overflow-y:hidden;');
+                }).on('input', function () {
+                    this.style.height = 'auto';
+                    this.style.height = (this.scrollHeight) + 'px';
+                });
+            });
+
+            $("#inputImage3").change(function(){
+                var formData = new FormData($("#post-picture")[0]);
+
+                $.ajax({
+                    url: "{% url 'picture:post_picture_info' %}",
+                    type: "POST",
+                    cache: false,
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(data){
+                        for (var i = 0; i<data.data.length; i++) {
+                            var pic_id = data.data[i].id;
+                            var pic_url = data.data[i].picture_url;
+                            add_posted_picture_div(pic_id, pic_url)
+                        }
+                        change_div3_height_eq_width("img-cover");
+                    },
+                    fail: function(data){
+                        console.log("fail: ");
+                        console.log(data);
+                    }
+                })
+            });
+
+            function add_posted_picture_div(pic_id, pic_url){
+                s = '<div class="col-xs-4 col-sm-3 posted-picture" id="' + pic_id + '-posted-picture">\
+                        <img src="' + pic_url + '" alt="" class="img-cover">\
+                        <div class="delete"><a href="javascript:"><img src="{% static 'base/bg_groups/delete_1.png' %}" alt=""></a></div>\
+                    </div>'
+                $("#post-pic-id").append(s)
+            }
+
+            function change_div3_height_eq_width(cls_name) {
+                var glo_height = 0;
+                $("." + cls_name).each(function () {
+                    wid = $(this).parent().css("width");
+                    if (Math.abs(parseInt(wid) - glo_height) > 1) {
+                        glo_height = parseInt(wid);
+                    }
+                    height = glo_height + "px";
+                    $(this).parent().css("height", height);
+                })
+            }
+
+            change_div3_height_eq_width("img-cover");
+            $("#post-pic-id").on("click", ".delete", function(){
+                $(this).parent().remove();
+            });
+            $("#publish-album").click(function(){
+                console.log($("#post-pic-id").find(".posted-picture").length);
+                console.log("inputDesc3 val(): ")
+                console.log($("#inputDesc3").val());
+
+                if ($("#post-pic-id").find(".posted-picture").length > 8){
+                    add_error_tips("图片太多！")
+                    return
+                }
+                if ($("#post-pic-id").find(".posted-picture").length == 0){
+                    add_error_tips("缺少图片！")
+                    return
+                }
+                if (!$("#inputDesc3").val()) {
+                    add_error_tips("必须输入内容！")
+                    return
+                }
+
+                var pic_ids = get_picture_ids();
+                var data = {
+                    title: $("#inputTitle3").val(), desc: $("#inputDesc3").val(),
+                    picture_ids: pic_ids, csrfmiddlewaretoken: $("#post-album").children("input[name='csrfmiddlewaretoken']").val()
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "{% url 'picture:post_album_info' %}",
+                    data: data,
+                    success: function(data){
+                        if (data.code == 0) {
+                            console.log(data)
+                            $("#myModal").modal("hide");
+                            show_loadingWrapper("添加成功！");
+                            clear_post_album_info();
+                        } else {
+                            console.log("fail");
+                            console.log(data);
+                        }
+                    }
+                })
+            });
+            function get_picture_ids(){
+                var picture_ids = new Array();
+                var i = 0;
+                $("#post-pic-id").find(".posted-picture").each(function(){
+                    picture_ids[i] = parseInt($(this).attr("id"));
+                    i += 1;
+                })
+                return picture_ids.toString()
+            }
+            function show_loadingWrapper(s){
+                $("body").prepend('<div class="loadingWrapper">\
+                    <img src="{% static 'base/bg_groups/success_1.png' %}" alt="" style="height: 50px; width: 50px;float:left">\
+                    <p style="padding-left:10px;margin:0px;height:50px;line-height: 50px;font-size: 40px;float:left;font-family:\'SimHei\';color:green;">' + s + '</p>\
+                </div>')
+                setTimeout(function(){
+                    $(".loadingWrapper").remove()
+                }, 1000);
+            }
+            function add_error_tips(s){
+                $("#tips-errors").html(s)
+                setTimeout(function(){
+                    add_error_tips("")
+                }, 4000)
+            }
+            function clear_post_album_info(){
+                <!--console.log($("#myModal").find("input"));-->
+                <!--$("#myModal").find("input").val("");-->
+                $("#inputTitle3").val("");
+                $("#inputDesc3").val("");
+                $("#inputImage3").val("");
+                $("#post-pic-id").children().remove();
+            }
+        })
+    </script>
+    <style>
+        .loadingWrapper {
+            position: fixed;
+            margin-left: -100px;
+            height: 90px;
+            left: 50%;
+            top: 20%;
+            z-index: 1;
+            background-color: coral;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .posted-picture {
+            width: 100px;
+            height: 100%;
+            position: relative;
+            padding: 8px;
+        }
+
+        .delete {
+            position: absolute;
+            left: 81px;
+            top: -2px;
+        }
+
+        .img-cover {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+    {% block style %}{% endblock %}
+    <title>{% block title %}share life index{% endblock %}</title>
+</head>
+
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-default" style="margin-bottom:0px;">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="{% url 'picture:index' %}">Lemonk</a>
+            </div>
+
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+
+                <form class="navbar-form navbar-left">
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="关键字" id="q">
+                    </div>
+                    <button type="submit" class="btn btn-default" id="kwyword_search" style="outline:none"><span
+                            class="glyphicon glyphicon-search" aria-hidden="true"></span></button>
+                </form>
+                <ul class="nav navbar-nav">
+                    <li><a href="#"><span class="glyphicon glyphicon-home" aria-hidden="true"></span><span
+                                style="font-size: 16px"> 探索</span></a></li>
+                </ul>
+
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+                            aria-expanded="false"><span class="glyphicon glyphicon-menu-hamburger"
+                                aria-hidden="true"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#">回复</a></li>
+                            <li><a href="#">关注</a></li>
+                            <li><a href="#">聊天</a></li>
+                            <li role="separator" class="divider"></li>
+                            <li><a href="{% url 'user:my_user_info' %}">个人中心</a></li>
+                            <li><a href="{% url 'user:user_logout' %}">退出登录</a></li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <ul class="nav navbar-nav navbar-right navbar-form">
+                    <!--<li><a href="#"><span class="glyphicon glyphicon-home" aria-hidden="true"></span><span-->
+                                <!--style="font-size: 16px"> 探索</span></a></li>-->
+                    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#myModal" style="font-weight：bold;outline:none"><span
+                            class="glyphicon glyphicon-send" aria-hidden="true"> <strong>发布图片</strong></span></button>
+                </ul>
+
+
+            </div><!-- /.navbar-collapse -->
+            <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                                    aria-hidden="true">&times;</span></button>
+                            <h4 class="modal-title" id="myModalLabel">发布照片</h4>
+                        </div>
+                        <div class="modal-body">
+
+                            <form class="form-horizontal" id="post-album" action="{% url 'picture:post_album_info' %}" method="POST">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="inputTitle3" class="col-sm-2 control-label">标题：</label>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" name="title" id="inputTitle3" placeholder="title">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inputDesc3" class="col-sm-2 control-label">说点什么：</label>
+                                    <div class="col-sm-8">
+                                        <!-- <input type="text" class="form-control" name="desc" id="inputDesc3" placeholder="说点什么吧"> -->
+                                        <textarea class="form-control" name="desc" id="inputDesc3" placeholder="说点什么吧" rows="3"></textarea>
+                                        <input type="hidden" id="id-posted-picture-ids" name="picture_ids">
+                                    </div>
+                                </div>
+                            </form>
+
+                            <form class="form-horizontal" id="post-picture" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="inputImage3" class="col-sm-2 control-label">上传照片：</label>
+                                    <div class="col-sm-8">
+                                        <input type="file" class="form-control" id="inputImage3" name="file"
+                                            accept="image/gif,image/jpg,image/jpeg,image/png" multiple>
+                                    </div>
+                                    <div class="col-sm-8">
+                                        <p class="help-block">(最多8张)<span id="tips-errors" style="padding-left:20px;font-weight:bold;color:red"></span> </p>
+                                        <div id="post-pic-id">
+
+                                            <!--<div class="col-xs-4 col-sm-3 posted-picture" id="1-posted-picture">-->
+                                                <!--<img src="{% static 'base/bg_groups/1.jpg' %}" alt="" class="img-cover">-->
+                                                <!--<div class="delete"><a href="javascript:"><img src="{% static 'base/bg_groups/delete_1.png' %}" alt=""></a></div>-->
+                                            <!--</div>-->
+
+                                            <!--<div class="col-xs-4 col-sm-3 posted-picture" id="2-posted-picture">-->
+                                                <!--<img src="{% static 'base/bg_groups/9.jpg' %}" alt="" class="img-cover">-->
+                                                <!--<div class="delete"><a href="javascript:"><img src="{% static 'base/bg_groups/delete_1.png' %}" alt=""></a></div>-->
+                                            <!--</div>-->
+
+                                            <!--<div class="col-xs-4 col-sm-3 posted-picture" id="3-posted-picture">-->
+                                                <!--<img src="{% static 'base/bg_groups/6.jpg' %}" alt="" class="img-cover">-->
+                                                <!--<div class="delete"><a href="javascript:"><img src="{% static 'base/bg_groups/delete_1.png' %}" alt=""></a></div>-->
+                                            <!--</div>-->
+                                            <!--<div class="col-xs-4 col-sm-3 posted-picture" id="4-posted-picture">-->
+                                                <!--<img src="{% static 'base/bg_groups/7.jpg' %}" alt="" class="img-cover">-->
+                                                <!--<div class="delete"><a href="javascript:"><img src="{% static 'base/bg_groups/delete_1.png' %}" alt=""></a></div>-->
+                                            <!--</div>-->
+                                            <!--<div class="col-xs-4 col-sm-3 posted-picture" id="5-posted-picture">-->
+                                                <!--<img src="{% static 'base/bg_groups/8.jpeg' %}" alt="" class="img-cover">-->
+                                                <!--<div class="delete"><a href="javascript:"><img src="{% static 'base/bg_groups/delete_1.png' %}" alt=""></a></div>-->
+                                            <!--</div>-->
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                            <button type="button" class="btn btn-primary" id="publish-album">发布</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- /.container-fluid -->
+    </nav>
+
+    {% block body %} {% endblock %}
+
+
+    <div style="text-align:center;padding-top:20px;">
+        <p>Copyright 2019 by Owner(wcp) - 不可知之地 - <a href="/">手机版</a> - <a href="mailto:smartwu_sir@163.com">联系我</a></p>
+    </div>
+</body>
+
+</html>
