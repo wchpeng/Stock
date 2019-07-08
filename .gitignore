@@ -9,6 +9,7 @@ db.sqlite3
 # Distribution / packaging
 .Python
 .idea/
+logs/
 build/
 develop-eggs/
 dist/
