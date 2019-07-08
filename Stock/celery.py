@@ -50,7 +50,7 @@ app.conf.beat_schedule = {
         'task': 'Stock.celery.ttt',
         # 'schedule': crontab(day_of_week={1, 2, 3, 4, 5}),
         # 'schedule': crontab('*'),
-        'schedule': 20,
+        'schedule': 300,
         'args': ()
     },
     # 周一至周五，每天的 11.30, 15:00 执行一次往历史库插入数据的操作
@@ -68,22 +68,22 @@ app.conf.beat_schedule = {
     # 周一周五，每天的 9:30-11:30, 13:00-15:00 这期间，每十分钟更新一次 stock 表实时信息
     'update_latest_stock_info_every_mon2fri_09': {
         'task': 'Stock.celery.sync_data_to_stock',
-        'schedule': crontab(minute=[40, 50], hour=9, day_of_month={1, 2, 3, 4, 5}),
+        'schedule': crontab(minute=[40, 50], hour=9, day_of_week={1, 2, 3, 4, 5}),
         'args': ()
     },
     'update_latest_stock_info_every_mon2fri_11': {
         'task': 'Stock.celery.sync_data_to_stock',
-        'schedule': crontab(minute={0, 10, 20, 30}, hour=11, day_of_month={1, 2, 3, 4, 5}),
+        'schedule': crontab(minute={0, 10, 20, 30}, hour=11, day_of_week={1, 2, 3, 4, 5}),
         'args': ()
     },
     'update_latest_stock_info_every_mon2fri_10_11_13_14': {
         'task': 'Stock.celery.sync_data_to_stock',
-        'schedule': crontab(minute='*/10', hour={10, 13, 14}, day_of_month={1, 2, 3, 4, 5}),
+        'schedule': crontab(minute='*/10', hour={10, 13, 14}, day_of_week={1, 2, 3, 4, 5}),
         'args': ()
     },
     'update_latest_stock_info_every_mon2fri_15': {
         'task': 'Stock.celery.sync_data_to_stock',
-        'schedule': crontab(minute=0, hour=15, day_of_month={1, 2, 3, 4, 5}),
+        'schedule': crontab(minute=0, hour=15, day_of_week={1, 2, 3, 4, 5}),
         'args': ()
     }
 }
