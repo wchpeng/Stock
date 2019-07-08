@@ -8,6 +8,7 @@ from ._utils import get_all_stock_info
 
 
 class Command(BaseCommand):
+
     help = ' 统计股票信息到历史库 stock_history'
 
     def add_arguments(self, parser):

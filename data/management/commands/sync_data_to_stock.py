@@ -60,9 +60,6 @@ class Command(BaseCommand):
                     kwargs['name'] = val['name']
                     kwargs['enum_stock_type'] = code[:2]
                     stock = Stock()
-                    print('----------------------------------------------')
-                    print(kwargs)
-                    print('----------------------------------------------')
 
                 for k, v in kwargs.items():
                     setattr(stock, k, v)
