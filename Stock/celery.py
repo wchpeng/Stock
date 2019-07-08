@@ -29,8 +29,7 @@ def debug_task(self):
 
 @shared_task
 def ttt():
-    print("start ttt sleep(10) _______")
-    time.sleep(10)
+    print("start ttt test ____________")
     print("end ttt____________________")
     return "yyyyyyyyyyyyyyyyyyyyyy"
 
