@@ -1,4 +1,6 @@
 # 同步最新数据到 stock 表（每只股票的实时信息）
+import time
+
 from django.core.management.base import CommandError, BaseCommand
 
 from data.models import Stock
@@ -13,6 +15,8 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
+        print("start aync data to stock: >>>>>>>>>>>>>>>>>>>>>>")
+        t0 = time.time()
         data = get_all_stock_info()
         if data:
             for code, val in data.items():
@@ -63,3 +67,4 @@ class Command(BaseCommand):
                 for k, v in kwargs.items():
                     setattr(stock, k, v)
                 stock.save()
+        print("cost: %.2f <<<<<<<<<<<<<<<<<<<<<<<<" % (time.time()-t0))

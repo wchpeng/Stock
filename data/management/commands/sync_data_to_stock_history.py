@@ -1,4 +1,6 @@
 # 统计股票信息到历史库 stock_history
+import time
+
 from django.core.management.base import CommandError, BaseCommand
 
 from data.models import StockHistory
@@ -12,6 +14,8 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
+        print("start aync data to stock history: >>>>>>>>>>>>>>>>>>>>>>")
+        t0 = time.time()
         data = get_all_stock_info()
         if data:
             obj_list = []
@@ -51,3 +55,4 @@ class Command(BaseCommand):
                 obj_list.append(StockHistory(**kwargs))
 
             StockHistory.objects.bulk_create(obj_list)
+        print("cost: %.2f <<<<<<<<<<<<<<<<<<<<<<<<" % (time.time()-t0))
