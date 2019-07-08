@@ -126,8 +126,8 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 
 # celery configure
-CELERY_BROKER_URL = 'redis://127.0.0.1/12'
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1/12'
+CELERY_BROKER_URL = 'redis://127.0.0.1/13'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1/13'
 # CELERY_RESULT_SERIALIZER = 'json'
 
 # cache key format
