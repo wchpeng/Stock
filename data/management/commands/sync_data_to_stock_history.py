@@ -56,4 +56,4 @@ class Command(BaseCommand):
                 obj_list.append(StockHistory(**kwargs))
 
             StockHistory.objects.bulk_create(obj_list)
-        print("cost: %.2f <<<<<<<<<<<<<<<<<<<<<<<<" % (time.time()-t0))
+        print("history cost: %.2f <<<<<<<<<<<<<<<<<<<<<<<<" % (time.time()-t0))
