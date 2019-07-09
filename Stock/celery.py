@@ -54,12 +54,12 @@ app.conf.beat_schedule = {
 #    },
     # 周一至周五，每天的 10:30, 11:30, 14:00, 15:00 执行一次往历史库插入数据的操作
     'add_stock_history_info_1130': {
-        'task': 'Stock.celery.sync_data_to_stock_history_mon2fri',
+        'task': 'Stock.celery.sync_data_to_stock_history',
         'schedule': crontab(minute=30, hour={10, 11}, day_of_week={1, 2, 3, 4, 5}),
         'args': ()
     },
     'add_stock_history_info_1500': {
-        'task': 'Stock.celery.sync_data_to_stock_history_mon2fri',
+        'task': 'Stock.celery.sync_data_to_stock_history',
         'schedule': crontab(minute=0, hour={14, 15}, day_of_week={1, 2, 3, 4, 5}),
         'args': ()
     },
