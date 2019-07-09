@@ -1,18 +1,55 @@
 <!doctype html>
+{% load static %}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="{% static 'stock/stock_list.css' %}">
     <title>Document</title>
 </head>
-<body>
+<body style="background-color: rgba(204,204,204,0.23)">
+
+    <div class="container">
+        <form action="{% url 'stock_list_html' %}" method="get" class="parent">
+            <input type="text" name="q">
+            <input type="submit" value="搜索">
+        </form>
+    </div>
     <ul>
-        {% for d in data %}
-        <li>{{ d.code }} {{ d.name }} <a href="/data/info/{{ d.code }}/">详情</a></li>
-        {% endfor %}
     </ul>
+
+
+    <div class="fav_list">
+        <div data-v-357a65ed="" class="fav_list_box">
+            <div class="fav_list_title">
+                <h3 class="fav_list_title_h3">股票信息</h3>
+                <div class="fav_num">
+                    共<span>{{ data|length }}</span>条
+                </div>
+            </div>
+            <div class="my_fav_con">
+                <div>
+                    <ul class="my_fav_list">
+
+                        {% for d in data %}
+                        <li class="my_fav_list_li" id="">
+                            <a class="my_fav_list_a" href="{% url 'stock_info_html' d.code %}" target="_blank">
+                                {{ d.code }} - {{ d.name }}
+                            </a>
+                            <label class="my_fav_list_label">
+                                <span>{{ d.datetime|date:"Y-m-d" }}</span>
+                            </label>
+                        </li>
+                        {% endfor %}
+
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
 </body>
 </html>

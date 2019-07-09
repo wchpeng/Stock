@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic.base import TemplateView
+from django.db.models.query_utils import Q
 
 from data.models import StockHistory, Stock
 
@@ -33,6 +34,14 @@ class StockListView(TemplateView):
 
     def get(self, request, *args, **kwargs):
 
-        data = {"data": Stock.objects.all().values('code', 'name')}
+        obj_list = self.get_obj_list()
+        data = {"data": obj_list.values('code', 'name', 'datetime')}
 
         return super(StockListView, self).get(request, *args, **data)
+
+    def get_obj_list(self):
+        q = self.request.GET.get('q', None)
+        if q is None:
+            return Stock.objects.all()
+        else:
+            return Stock.objects.filter(Q(code__contains=q) | Q(name__contains=q))
