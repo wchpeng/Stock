@@ -1,8 +1,2 @@
-celery==4.3.0
-Django==2.1.7
-django-redis==4.10.0
 easyquotation==0.5.14
 easyutils==0.1.7
-kombu==4.5.0
-redis==3.2.1
-requests==2.22.0
