@@ -20,6 +20,7 @@ class NewCls:
             cls._instance[tb_name] = new_tb
         return cls._instance[tb_name]
 
+
 a = NewCls(BaseTemplate, 'table001')
 b = NewCls(BaseTemplate, 'table002')
 c = NewCls(BaseTemplate, 'table003')
