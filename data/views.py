@@ -1,15 +1,47 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views.generic.base import TemplateView
+from django.db.models.query_utils import Q
+
+from data.models import StockHistory, Stock
 
 
 class StockInfoView(TemplateView):
 
-    template_name = 'stock/stock_info'
+    template_name = 'data/stock_info.html'
+
+    def get(self, request, code, **kwargs):
+
+        stock_history_info = StockHistory.objects.filter(code=code).values_list('now', 'datetime')
+        stock_info = get_object_or_404(Stock, code=code)
+
+        series = [i[0] for i in stock_history_info]
+        x_axis = [i[1].strftime("%Y/%m/%d %H") for i in stock_history_info]
+
+        data = {
+            'code': code,
+            'name': stock_info.name,
+            'e_charts': {
+                'x_axis': x_axis,
+                'series': series
+            }
+        }
+        return super(StockInfoView, self).get(request, **data)
+
+
+class StockListView(TemplateView):
+
+    template_name = 'data/stock_list.html'
 
     def get(self, request, *args, **kwargs):
-        data = {
-            'code': '',
-            'name': '',
-            'e_charts': {}
-        }
-        return super(StockInfoView, self).get(request, *args, **data)
+
+        obj_list = self.get_obj_list()
+        data = {"data": obj_list.values('code', 'name', 'datetime')}
+
+        return super(StockListView, self).get(request, *args, **data)
+
+    def get_obj_list(self):
+        q = self.request.GET.get('q', None)
+        if q is None:
+            return Stock.objects.all()
+        else:
+            return Stock.objects.filter(Q(code__contains=q) | Q(name__contains=q))
