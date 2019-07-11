@@ -41,7 +41,14 @@ class StockListView(TemplateView):
 
     def get_obj_list(self):
         q = self.request.GET.get('q', None)
+        all = self.request.GET.get('all', None)
+        per_page = self.request.GET.get('per_page', 40)
+
         if q is None:
-            return Stock.objects.all()
+            obj_list = Stock.objects.all()
         else:
-            return Stock.objects.filter(Q(code__contains=q) | Q(name__contains=q))
+            obj_list = Stock.objects.filter(Q(code__contains=q) | Q(name__contains=q))
+
+        if all:
+            return obj_list
+        return obj_list[0:int(per_page)]
