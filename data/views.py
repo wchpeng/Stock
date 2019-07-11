@@ -23,7 +23,8 @@ class StockInfoView(TemplateView):
             'e_charts': {
                 'x_axis': x_axis,
                 'series': series
-            }
+            },
+            'prices': dict(zip(x_axis, series))
         }
         return super(StockInfoView, self).get(request, **data)
 
