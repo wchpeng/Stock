@@ -60,7 +60,7 @@ app.conf.beat_schedule = {
     },
     'add_stock_history_info_1500': {
         'task': 'Stock.celery.sync_data_to_stock_history',
-        'schedule': crontab(minute=0, hour={14, 15}, day_of_week={1, 2, 3, 4, 5}),
+        'schedule': crontab(minute=2, hour={14, 15}, day_of_week={1, 2, 3, 4, 5}),
         'args': ()
     },
 
